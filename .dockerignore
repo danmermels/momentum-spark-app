@@ -1,0 +1,33 @@
+# Docker
+Dockerfile
+.dockerignore
+
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Next.js
+.next/
+out/
+
+# Local Environment
+.env*.local
+.env
+
+# SQLite database files (if they ever accidentally get into the root)
+*.sqlite
+*.sqlite-journal
+
+# macOS
+.DS_Store
+._*
+
+# IDE specific
+.vscode/
+*.sublime-workspace
+.idea/
