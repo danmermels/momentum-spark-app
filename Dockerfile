@@ -1,13 +1,17 @@
-# Dockerfile
-
-# ---- Base Stage ----
+# ==== Stage 1: Base ====
+# Use official Node.js Alpine image as a base
 FROM node:20-alpine AS base
+LABEL maintainer="daniel@danielgronau.com"
+
+# Set working directory
 WORKDIR /app
-# Create a non-root user for security
+
+# Create a non-root user and group for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# ---- Dependencies Stage ----
+# ==== Stage 2: Dependencies ====
+# Install dependencies, separate from the build stage for caching
 FROM base AS deps
 WORKDIR /app
 
@@ -15,93 +19,93 @@ WORKDIR /app
 COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
 
 # Install dependencies based on the lock file found
-# This stage is for installing dependencies only and can be cached effectively
+# This prioritizes package-lock.json (npm), then pnpm-lock.yaml (pnpm), then yarn.lock (yarn)
 RUN \
   if [ -f package-lock.json ]; then \
     echo "Found package-lock.json, running npm ci" && \
     npm ci; \
   elif [ -f pnpm-lock.yaml ]; then \
-    echo "Found pnpm-lock.yaml, running pnpm i"; \
-    # Ensure pnpm is available if you use it, e.g., by installing it globally in 'base' or here
-    # npm install -g pnpm && pnpm i --frozen-lockfile; \
+    echo "Found pnpm-lock.yaml, running pnpm i --frozen-lockfile" && \
+    npm install -g pnpm && \
+    pnpm i --frozen-lockfile; \
   elif [ -f yarn.lock ]; then \
-    echo "Found yarn.lock, running yarn install" && \
+    echo "Found yarn.lock, running yarn install --frozen-lockfile" && \
+    npm install -g yarn && \
     yarn install --frozen-lockfile; \
   else \
-    echo "No lockfile found, running npm install (less ideal for reproducibility)"; \
-    npm install; \
+    echo "No lockfile found. Please ensure one of (package-lock.json, pnpm-lock.yaml, yarn.lock) is present." && \
+    exit 1; \
   fi
 
-# ---- Builder Stage ----
+# ==== Stage 3: Builder ====
+# Build the Next.js application
 FROM base AS builder
 WORKDIR /app
 
-# Copy dependencies from the 'deps' stage
+# Copy dependencies from 'deps' stage
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=deps --chown=nextjs:nodejs /app/package.json ./package.json
 
-# Copy the rest of the application source code
-# Ensure .dockerignore is properly configured to exclude unnecessary files
+# Copy the rest of the application code
+# Ensure .dockerignore is properly set up to exclude unnecessary files
 COPY . .
 
-# Set build-time arguments
-ARG NEXT_PUBLIC_GTAG_ID_ARG
-ENV NEXT_PUBLIC_GTAG_ID=$NEXT_PUBLIC_GTAG_ID_ARG
+# Set environment variables for the build stage
+# Ensure these are appropriate for your build process, e.g., if you have specific build-time secrets or configs
+# ENV NODE_ENV=production
+# ENV NEXT_TELEMETRY_DISABLED 1
 
 # Build the Next.js application
-# Ensure the 'build' script is correctly defined in package.json
-# The nextjs user should own the files it's building if possible,
-# but build often requires root for certain operations or writes to system dirs.
-# If build can run as non-root, switch USER nextjs before this.
-# For now, assume build needs broader permissions or runs as root by default.
+# Ensure the build script is correctly defined in package.json
 RUN npm run build
 
-# ---- Runner Stage ----
+# ==== Stage 4: Runner ====
+# Create the final, minimal image for running the application
 FROM base AS runner
 WORKDIR /app
 
-# Set environment to production for the running application
+# Set environment variables for the runtime
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED 1
 
-# Build-time argument for the API key
+# Pass the API key as a build argument and set it as an environment variable
 ARG GEMINI_API_KEY_ARG
-# Set the environment variable for the application from the build-time argument
 ENV GEMINI_API_KEY=$GEMINI_API_KEY_ARG
-# ENV NEXT_DIST_DIR=/app/.next # Removed for this attempt
+
+# Create a non-root user for running the app
+# This user was created in the 'base' stage
+USER nextjs
 
 # Create and set permissions for the /app/data directory for SQLite
+# This needs to be done as root before switching to nextjs user if nextjs needs to write here
+# However, server.js will run as nextjs, so /app/data needs to be writable by nextjs
+# The getDB function attempts to create /app/data if it doesn't exist.
+# Ensure the parent directory /app is writable by nextjs initially or create /app/data as root and chown it.
+# We'll create it as root and chown it here.
+USER root
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
-# Also ensure /data exists if it's used by SQLite directly (as seen in some DB init logs)
-# This might be redundant if db is always in /app/data, but harmless.
+# Also for the /data directory if it's different and used by SQLite
 RUN mkdir -p /data && chown nextjs:nodejs /data
+USER nextjs
 
-
-# Copy only necessary artifacts from the builder stage for standalone output
-# This includes the server.js, .next/server, and minimal node_modules
+# Copy the standalone Next.js server output
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 
-# Copy the .next/static directory for serving client-side assets
+# Copy static assets and public directory
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Copy the public directory
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# Debug: List the contents of /app to verify structure
-# This is a cache-busting echo to ensure ls runs on changes
+
+# For debugging: List the contents of /app to verify structure
+USER root
 RUN echo "DEBUG RUNNER: Recursive listing of /app (CacheBuster-Structure-MU)" && ls -AlR /app
-
-# Ensure the nextjs user owns all application files in the final image.
-# This is crucial if any files were created/copied as root.
+# Ensure all files in /app are owned by the nextjs user for good measure
 RUN chown -R nextjs:nodejs /app
-
-# Switch to the non-root user
 USER nextjs
 
 # Expose the port the app runs on
+EXPOSE 8080
 
-# Informs Docker that the container listens on port 8080
-EXPOSE 8080 
+# Correct command to run the Next.js standalone server
+CMD ["node", "--trace-warnings", "server.js"]
 
-# Correct command to run the Next.js standalone server via npm start
-# This relies on the package.json in the standalone output having a "start": "node server.js" script.
-CMD ["npm", "start"]
