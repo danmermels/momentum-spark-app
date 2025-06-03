@@ -176,7 +176,7 @@ const Sidebar = React.forwardRef<
   ) => {
     const context = React.useContext(SidebarContext);
     if (!context) {
-      return null; // Render nothing if context is not available
+      return null; 
     }
     const { isMobile, state, openMobile, setOpenMobile } = context;
 
@@ -565,8 +565,6 @@ const SidebarMenuButton = React.forwardRef<
     const context = React.useContext(SidebarContext);
 
     if (!context) {
-      // Fallback rendering or null if context is not available
-      // This helps during specific build phases like _not-found prerender.
       return (
         <Comp
           ref={ref}
@@ -759,7 +757,6 @@ const SidebarMenuSubButton = React.forwardRef<
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
 
 export {
-  SidebarContext,
   Sidebar,
   SidebarContent,
   SidebarFooter,
