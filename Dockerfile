@@ -90,7 +90,8 @@ COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
 USER nextjs
 
-EXPOSE 8080 # Informs Docker that the container listens on port 8080
+# Informs Docker that the container listens on port 8080
+EXPOSE 8080 
 
 # Correct command to run the Next.js standalone server
 CMD ["node", "server.js"]
