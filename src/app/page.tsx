@@ -1,31 +1,32 @@
+
 // src/app/page.tsx
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useTasksWithSimpleId as useTasks } from '../hooks/use-tasks'; // Adjusted path
-import { useSettings } from '../hooks/use-settings'; // Adjusted path
-import TaskCard from '../components/task-card'; // Adjusted path
-import DailyTaskItem from '../components/daily-task-item'; // Adjusted path
-import CompletedMilestoneItem from '../components/completed-milestone-item'; // Adjusted path
-import ProgressDisplay from '../components/progress-display'; // Adjusted path
-import MonthlyProgressChart from '../components/monthly-progress-chart'; // Adjusted path
-import MotivationalMessageModal from '../components/motivational-message-modal'; // Adjusted path
-import { Button } from '../components/ui/button'; // Adjusted path
+import { useTasksWithSimpleId as useTasks } from '../hooks/use-tasks'; 
+import { useSettings } from '../hooks/use-settings'; 
+import TaskCard from '../components/task-card'; 
+import DailyTaskItem from '../components/daily-task-item'; 
+import CompletedMilestoneItem from '../components/completed-milestone-item'; 
+import ProgressDisplay from '../components/progress-display'; 
+import MonthlyProgressChart from '../components/monthly-progress-chart'; // Relative path
+import MotivationalMessageModal from '../components/motivational-message-modal'; 
+import { Button } from '../components/ui/button'; 
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../components/ui/select'; // Adjusted path
-import { Input } from '../components/ui/input'; // Adjusted path
-import { generateMotivationalMessage, type MotivationalMessageInput } from '../ai/flows/generate-motivational-message'; // Adjusted path
-import { getDaysUntilDueDate, isDateThisMonth } from '../lib/date-utils'; // Adjusted path
-import type { TaskWithId } from '../types/task'; // Adjusted path
+} from '../components/ui/select'; 
+import { Input } from '../components/ui/input'; 
+import { generateMotivationalMessage, type MotivationalMessageInput } from '../ai/flows/generate-motivational-message'; // Relative path
+import { getDaysUntilDueDate, isDateThisMonth } from '../lib/date-utils'; 
+import type { TaskWithId } from '../types/task'; 
 import { PlusCircle, ListFilter, Database, Repeat, CalendarDays as CalendarDaysIcon, CheckCircle2, Loader2 } from 'lucide-react';
-import { useToast } from "../hooks/use-toast"; // Adjusted path
+import { useToast } from "../hooks/use-toast"; 
 import { parseISO, format } from 'date-fns';
 
 type SortOption = "dueDate" | "weight" | "title" | "status";
@@ -44,7 +45,7 @@ export default function TaskDashboardPage() {
   const [motivationalMessage, setMotivationalMessage] = useState<string | null>(null);
   const [motivationalMessageType, setMotivationalMessageType] = useState<'text' | 'audio'>('text');
   const [lastNotifiedUpcomingTaskId, setLastNotifiedUpcomingTaskId] = useState<number | null>(null);
-  const [hasAttemptedSeeding, setHasAttemptedSeeding] = useState(false); // This might be less relevant with DB seeding
+  const [hasAttemptedSeeding, setHasAttemptedSeeding] = useState(false);
 
   const [currentDateDisplay, setCurrentDateDisplay] = useState({ day: '', month: '' });
 
@@ -56,13 +57,8 @@ export default function TaskDashboardPage() {
     });
   }, []);
 
-
-  // Effect for initial seeding if tasks are empty (though server API handles primary seeding)
    useEffect(() => {
     if (!tasksLoading && tasks.length === 0 && !hasAttemptedSeeding && !settingsLoading) {
-        // Consider if client-side seeding is still desired or if server seeding is sufficient.
-        // For now, let's assume server handles initial seed, so this might be redundant.
-        // seedDefaultTasks(); // This would now POST to API
         setHasAttemptedSeeding(true);
     }
   }, [tasks.length, seedDefaultTasks, hasAttemptedSeeding, tasksLoading, settingsLoading]);
@@ -72,7 +68,7 @@ export default function TaskDashboardPage() {
     const task = tasks.find(t => t.id === id);
     if (!task || settingsLoading) return;
 
-    toggleTaskCompletion(id, completed); // Optimistic update first
+    toggleTaskCompletion(id, completed);
 
     if (completed && !task.isRecurring) {
       try {
@@ -114,7 +110,7 @@ export default function TaskDashboardPage() {
       const pendingNonRecurringTasks = tasks.filter(t => !t.isCompleted && !t.isRecurring);
       const upcomingTask = pendingNonRecurringTasks.find(t => {
         const days = getDaysUntilDueDate(t.dueDate);
-        return days >= 0 && days <= 1; // Due today or tomorrow
+        return days >= 0 && days <= 1; 
       });
 
       if (upcomingTask && settings.enableNotifications) {
@@ -135,11 +131,6 @@ export default function TaskDashboardPage() {
             setLastNotifiedUpcomingTaskId(upcomingTask.id);
           } catch (error) {
             console.error("Failed to generate due date reminder:", error);
-            // toast({ // Avoid too many toasts
-            //   title: "AI Reminder Error",
-            //   description: "Could not generate due date reminder for " + upcomingTask.title,
-            //   variant: "destructive",
-            // });
           }
         }
       } else if (!upcomingTask && settings.enableNotifications) {
@@ -155,7 +146,7 @@ export default function TaskDashboardPage() {
       setLastNotifiedUpcomingTaskId(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tasks, settings.enableNotifications, hasAttemptedSeeding, settings.userName, settingsLoading, tasksLoading /* lastNotifiedUpcomingTaskId removed */]);
+  }, [tasks, settings.enableNotifications, hasAttemptedSeeding, settings.userName, settingsLoading, tasksLoading]);
 
 
   const { dailyTasks, longTermTasks, completedThisMonthMilestones } = useMemo(() => {
@@ -399,5 +390,6 @@ export default function TaskDashboardPage() {
     </div>
   );
 }
+    
 
     

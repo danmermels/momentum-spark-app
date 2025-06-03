@@ -1,3 +1,4 @@
+
 // src/components/monthly-progress-chart.tsx
 "use client";
 
@@ -46,13 +47,12 @@ export default function MonthlyProgressChart({ tasks }: MonthlyProgressChartProp
     const data = [];
 
     for (let day = 1; day <= daysInMonth; day++) {
-      // Logic to only show data up to today, or null for future days
       if (day > todayDate && !isSameDate(new Date(currentYear, currentMonth, day), today)) {
-         data.push({ name: String(day), day, progress: null }); // Use null for future days not yet reached
+         data.push({ name: String(day), day, progress: null }); 
          continue;
       }
       
-      const currentDateIter = new Date(currentYear, currentMonth, day, 23, 59, 59); // End of day for comparison
+      const currentDateIter = new Date(currentYear, currentMonth, day, 23, 59, 59);
 
       let cumulativeWeightCompleted = 0;
       relevantTasks.forEach((task) => {
@@ -152,3 +152,5 @@ export default function MonthlyProgressChart({ tasks }: MonthlyProgressChartProp
     </Card>
   );
 }
+
+    
