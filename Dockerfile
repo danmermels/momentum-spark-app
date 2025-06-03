@@ -2,45 +2,37 @@
 # Stage 1: Install dependencies
 FROM node:20-alpine AS deps
 WORKDIR /app
-
-# Copy package.json and lock file
 COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
-
-# Install dependencies based on the lock file present
 RUN \
   if [ -f package-lock.json ]; then npm ci; \
   elif [ -f pnpm-lock.yaml ]; then corepack enable && pnpm i --frozen-lockfile; \
   elif [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
-  else echo "Warning: No lock file found. Installing from package.json." && npm install; \
+  else echo "Lockfile not found." && exit 1; \
   fi
 
-# Stage 2: Build the application
+# Stage 2: Build the Next.js application
 FROM node:20-alpine AS builder
 WORKDIR /app
-
-# Copy installed dependencies and package.json
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
-
-# Copy the rest of the application code
 COPY . .
 
-# DEBUG: Verify directory structure and file presence
-RUN echo "DEBUG BUILDER: Current directory:" && pwd && echo "---"
-RUN echo "DEBUG BUILDER: Contents of /app (root of WORKDIR):" && ls -A /app && echo "---"
-RUN echo "DEBUG BUILDER: Contents of /app/src:" && (ls -A /app/src || echo "Directory /app/src not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER: Contents of /app/src/app:" && (ls -A /app/src/app || echo "Directory /app/src/app not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER: Contents of /app/src/app/api:" && (ls -A /app/src/app/api || echo "Directory /app/src/app/api not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER: Contents of /app/src/app/api/tasks:" && (ls -A /app/src/app/api/tasks || echo "Directory /app/src/app/api/tasks not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER: Contents of /app/src/components:" && (ls -A /app/src/components || echo "Directory /app/src/components not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER: Contents of /app/src/components/ui:" && (ls -A /app/src/components/ui || echo "Directory /app/src/components/ui not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER: Contents of /app/src/hooks:" && (ls -A /app/src/hooks || echo "Directory /app/src/hooks not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER: Contents of /app/src/lib:" && (ls -A /app/src/lib || echo "Directory /app/src/lib not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER: Contents of /app/src/types:" && (ls -A /app/src/types || echo "Directory /app/src/types not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER: Contents of /app/src/ai:" && (ls -A /app/src/ai || echo "Directory /app/src/ai not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER: Contents of /app/src/ai/flows:" && (ls -A /app/src/ai/flows || echo "Directory /app/src/ai/flows not found or empty") && echo "---"
+# Debug: Show contents of key directories after COPY . .
+RUN echo "DEBUG BUILDER (Post-Copy): Current directory:" && pwd && echo "---"
+RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app (root of WORKDIR):" && ls -A /app && echo "---"
+RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src:" && (ls -A /app/src || echo "Directory /app/src not found or empty") && echo "---"
+RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/app:" && (ls -A /app/src/app || echo "Directory /app/src/app not found or empty") && echo "---"
+RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/app/api:" && (ls -A /app/src/app/api || echo "Directory /app/src/app/api not found or empty") && echo "---"
+RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/app/api/tasks:" && (ls -A /app/src/app/api/tasks || echo "Directory /app/src/app/api/tasks not found or empty") && echo "---"
+RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/components:" && (ls -A /app/src/components || echo "Directory /app/src/components not found or empty") && echo "---"
+RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/components/ui:" && (ls -A /app/src/components/ui || echo "Directory /app/src/components/ui not found or empty") && echo "---"
+RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/hooks:" && (ls -A /app/src/hooks || echo "Directory /app/src/hooks not found or empty") && echo "---"
+RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/lib (CacheBuster-LIB-EPSILON):" && (ls -Al /app/src/lib || echo "Directory /app/src/lib not found or empty") && echo "---"
+RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/types (CacheBuster-TYPES-EPSILON):" && (ls -Al /app/src/types || echo "Directory /app/src/types not found or empty") && echo "---"
+RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/ai:" && (ls -A /app/src/ai || echo "Directory /app/src/ai not found or empty") && echo "---"
+RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/ai/flows:" && (ls -A /app/src/ai/flows || echo "Directory /app/src/ai/flows not found or empty") && echo "---"
 
-# RIGOROUS FILE CHECK (NEW - Checkpoint Delta) - This will fail the build if files are not found
+# RIGOROUS FILE CHECK (Checkpoint Delta) - This will fail the build if files are not found at expected paths/casing
 RUN echo "DEBUG BUILDER (Before Build - Checkpoint Delta): Verifying critical file paths and tsconfig" && \
     echo "Listing /app (WORKDIR contents):" && ls -A /app && \
     echo "Checking /app/tsconfig.json..." && \
@@ -61,36 +53,37 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
+ENV NODE_ENV production
 # Uncomment the following line in case you want to disable telemetry during runtime.
 # ENV NEXT_TELEMETRY_DISABLED 1
 
 RUN addgroup --system --gid 1001 nextjs
 RUN adduser --system --uid 1001 nextjs
 
-# Create the /app/data directory and set ownership
-RUN mkdir -p /app/data
-RUN chown nextjs:nextjs /app/data
-RUN echo "DEBUG RUNNER: Permissions of /app/data:" && ls -ld /app/data && echo "---"
-
-# Copy standalone output
-COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
-
-# Copy public assets
-COPY --from=builder /app/public ./public
-
-# Copy static assets
-COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
+# Create the /app/data directory and set permissions for the database
+RUN mkdir -p /app/data && \
+    chown nextjs:nextjs /app/data && \
+    echo "DEBUG RUNNER: Permissions of /app/data:" && ls -ld /app/data && echo "---"
 
 USER nextjs
 
-# DEBUG commands for runner stage
-RUN echo "DEBUG RUNNER: Current directory:" && pwd && echo "---"
-RUN echo "DEBUG RUNNER: Contents of /app (WORKDIR):" && ls -la /app && echo "---"
-RUN echo "DEBUG RUNNER: Specifically checking for server.js in /app:" && (ls -la /app/server.js || echo "/app/server.js NOT FOUND") && echo "---"
+COPY --from=builder --chown=nextjs:nextjs /app/public ./public
+COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
+
+# Copy the data directory from the builder if it exists (it won't unless pre-populated, but good practice)
+# This is more relevant if you had a seed DB in your source that was copied to builder
+# For a runtime-created DB, the mkdir -p /app/data above in this stage is key.
+# COPY --from=builder --chown=nextjs:nextjs /app/data ./data
 
 EXPOSE 3000
 ENV PORT 3000
+# set hostname to localhost
+ENV HOSTNAME "0.0.0.0"
 
-# CMD ["node", "server.js"]
-CMD ["node", "/app/server.js"]
+CMD ["node", "server.js"]
+
+# Legacy ENV format for Firebase App Hosting buildpack compatibility
+# TODO: Update to new format if buildpack supports it
+ENV ASPNETCORE_URLS=http://+:8080
+ENV鋰電池 PORT=8080
