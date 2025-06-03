@@ -1,8 +1,8 @@
 
 // src/app/api/tasks/[id]/route.ts
-import { NextResponse } from 'next/server';
-import { getDB } from '@/lib/db'; // Reverted to alias
-import { TaskSchema, type TaskWithId } from '@/types/task'; // Reverted to alias
+import { type NextRequest, NextResponse } from 'next/server';
+import { getDB } from '@/lib/db';
+import { TaskSchema, type TaskWithId } from '@/types/task';
 import type { Database } from 'sqlite';
 
 // Helper to map DB row to TaskWithId, converting 0/1 to boolean
@@ -14,7 +14,7 @@ const mapRowToTaskWithId = (row: any): TaskWithId => ({
   isRecurring: row.isRecurring === 1,
 });
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const id = Number(params.id);
   console.log(`[API /api/tasks/${id}] GET request received`);
   if (isNaN(id)) {
@@ -40,7 +40,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const id = Number(params.id);
   console.log(`[API /api/tasks/${id}] PUT request received`);
    if (isNaN(id)) {
@@ -106,7 +106,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const id = Number(params.id);
   console.log(`[API /api/tasks/${id}] DELETE request received`);
   if (isNaN(id)) {
