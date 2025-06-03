@@ -4,12 +4,7 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 # Copy package.json and lock file
-# For npm:
-COPY package.json package-lock.json* ./
-# For pnpm:
-# COPY package.json pnpm-lock.yaml* ./
-# For yarn:
-# COPY package.json yarn.lock* ./
+COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
 
 # Install dependencies based on the lock file found
 # This order handles most common cases. If multiple lock files exist, adjust as needed.
@@ -23,17 +18,15 @@ RUN if [ -f package-lock.json ]; then npm ci; \
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy node_modules and package files from the 'deps' stage
+# Copy node_modules and package files from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
-# If you have a package-lock.json, copy it too (optional if already handled by npm ci in deps)
-# COPY --from=deps /app/package-lock.json ./package-lock.json
+# COPY --from=deps /app/package-lock.json ./package-lock.json # Optional: if needed by build scripts
 
-# Copy the rest of your application source code
-# Ensure .dockerignore is properly set up to exclude node_modules, .next, etc. from being copied here.
+# Copy the rest of the application source code
 COPY . .
 
-# Add debugging ls commands
+# Debug: List contents to verify copy
 RUN echo "DEBUG BUILDER: Current directory:" && pwd && echo "---"
 RUN echo "DEBUG BUILDER: Contents of /app (root of WORKDIR):" && ls -A /app && echo "---"
 RUN echo "DEBUG BUILDER: Contents of /app/src:" && (ls -A /app/src || echo "Directory /app/src not found or empty") && echo "---"
@@ -47,9 +40,8 @@ RUN echo "DEBUG BUILDER: Contents of /app/src/ai:" && (ls -A /app/src/ai || echo
 RUN echo "DEBUG BUILDER: Contents of /app/src/ai/flows:" && (ls -A /app/src/ai/flows || echo "Directory /app/src/ai/flows not found or empty") && echo "---"
 
 
-# Set NEXT_TELEMETRY_DISABLED to 1 to disable telemetry during build
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
+# Set environment variables for the build process (if any)
+# ENV NODE_ENV production
 
 # Build the Next.js application
 RUN npm run build
@@ -58,13 +50,17 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-# Set NEXT_TELEMETRY_DISABLED to 1 to disable telemetry during runtime
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+# ENV NEXT_TELEMETRY_DISABLED 1 # Optional: disable Next.js telemetry
 
-# Create a non-root user for security
+# Create a non-root user and group
 RUN addgroup --system --gid 1001 nextjs
 RUN adduser --system --uid 1001 nextjs
+
+# Create and set permissions for the /app/data directory for SQLite
+RUN mkdir -p /app/data
+RUN chown nextjs:nextjs /app/data
+RUN echo "DEBUG RUNNER: Permissions of /app/data:" && ls -ld /app/data && echo "---"
 
 # Copy the standalone Next.js output
 COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
@@ -72,23 +68,20 @@ COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
 # Copy public assets
 COPY --from=builder /app/public ./public
 
-# Copy static assets (needed for output: 'standalone')
+# Copy static assets
 COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-
-USER nextjs
-
-# Debugging ls commands in runner stage
+# Debug: List contents of /app in runner to verify copies
 RUN echo "DEBUG RUNNER: Current directory:" && pwd && echo "---"
 RUN echo "DEBUG RUNNER: Contents of /app (WORKDIR):" && ls -la /app && echo "---"
-RUN echo "DEBUG RUNNER: Specifically checking for server.js in /app:" && ls -la /app/server.js && echo "---"
+RUN echo "DEBUG RUNNER: Specifically checking for server.js in /app:" && (ls -la /app/server.js || echo "/app/server.js not found") && echo "---"
 
+# Set the user to the non-root user
+USER nextjs
 
 EXPOSE 3000
 
 ENV PORT 3000
 
-# Correct command to run the standalone server
+# Command to run the Next.js application using the standalone server.js
 CMD ["node", "/app/server.js"]
