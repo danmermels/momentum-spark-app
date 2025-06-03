@@ -37,6 +37,12 @@ RUN echo "DEBUG: Contents of /app/src:" && ls -A /app/src && echo "---"
 RUN echo "DEBUG: Contents of /app/src/app:" && ls -A /app/src/app && echo "---"
 RUN echo "DEBUG: Contents of /app/src/components:" && ls -A /app/src/components && echo "---"
 RUN echo "DEBUG: Contents of /app/src/components/ui:" && ls -A /app/src/components/ui && echo "---"
+RUN echo "DEBUG: Contents of /app/src/hooks:" && (ls -A /app/src/hooks || echo "Directory /app/src/hooks not found or empty") && echo "---"
+RUN echo "DEBUG: Contents of /app/src/lib:" && (ls -A /app/src/lib || echo "Directory /app/src/lib not found or empty") && echo "---"
+RUN echo "DEBUG: Contents of /app/src/types:" && (ls -A /app/src/types || echo "Directory /app/src/types not found or empty") && echo "---"
+# Crucial lines for the current error:
+RUN echo "DEBUG: Contents of /app/src/ai:" && (ls -A /app/src/ai || echo "Directory /app/src/ai not found or empty") && echo "---"
+RUN echo "DEBUG: Contents of /app/src/ai/flows:" && (ls -A /app/src/ai/flows || echo "Directory /app/src/ai/flows not found or empty") && echo "---"
 
 # Build the Next.js application
 RUN npm run build
