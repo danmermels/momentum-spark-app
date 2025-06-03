@@ -6,19 +6,19 @@ import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
 
-import { useIsMobile } from "../../hooks/use-mobile" // Relative path
-import { cn } from "../../lib/utils" // Relative path
-import { Button } from "./button"
-import { Input } from "./input"
-import { Separator } from "./separator"
-import { Sheet, SheetContent } from "./sheet"
-import { Skeleton } from "./skeleton"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
+import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "./tooltip" // Relative path
+} from "@/components/ui/tooltip"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -27,7 +27,7 @@ const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
-type SidebarContextType = { // Renamed to avoid conflict
+type SidebarContextType = {
   state: "expanded" | "collapsed"
   open: boolean
   setOpen: (open: boolean) => void
@@ -37,7 +37,6 @@ type SidebarContextType = { // Renamed to avoid conflict
   toggleSidebar: () => void
 }
 
-// Exporting SidebarContext to be used in SiteHeader for a direct check
 export const SidebarContext = React.createContext<SidebarContextType | null>(null)
 
 
@@ -70,7 +69,7 @@ const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobile = useIsMobile() // Defaults to false on SSR
+    const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
 
     const [_open, _setOpen] = React.useState(defaultOpen)
@@ -91,7 +90,7 @@ const SidebarProvider = React.forwardRef<
     )
 
     const toggleSidebar = React.useCallback(() => {
-      if (isMobile) { 
+      if (isMobile) {
         setOpenMobile((currentOpenMobile) => !currentOpenMobile);
       } else {
         setOpen((currentOpen) => !currentOpen);
@@ -99,7 +98,7 @@ const SidebarProvider = React.forwardRef<
     }, [isMobile, setOpen, setOpenMobile]);
 
     React.useEffect(() => {
-      if (typeof window === 'undefined') return; 
+      if (typeof window === 'undefined') return;
 
       const handleKeyDown = (event: KeyboardEvent) => {
         if (
@@ -112,7 +111,7 @@ const SidebarProvider = React.forwardRef<
       }
       window.addEventListener("keydown", handleKeyDown)
       return () => window.removeEventListener("keydown", handleKeyDown)
-    }, [toggleSidebar]) 
+    }, [toggleSidebar])
 
     const state = open ? "expanded" : "collapsed"
 
@@ -175,13 +174,9 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const context = React.useContext(SidebarContext) // Check context first
+    const context = React.useContext(SidebarContext);
     if (!context) {
-      // This should ideally not happen if Sidebar is always within SidebarProvider.
-      // If it does, render nothing or a minimal version to avoid crashing.
-      // For _not-found prerender, this might be a fallback.
-      console.warn("Sidebar rendered outside of SidebarProvider during build for _not-found?");
-      return null; // Or a minimal fallback
+      return null; // Render nothing if context is not available
     }
     const { isMobile, state, openMobile, setOpenMobile } = context;
 
@@ -270,12 +265,11 @@ const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
-  const context = React.useContext(SidebarContext); // Get context directly
+  const context = React.useContext(SidebarContext);
   if (!context) {
-    // If no context (e.g., _not-found prerender without AppLayout fully wrapping), render nothing.
     return null;
   }
-  const { toggleSidebar } = context; // Destructure safely
+  const { toggleSidebar } = context;
 
   return (
     <Button
@@ -302,7 +296,7 @@ const SidebarRail = React.forwardRef<
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
   const context = React.useContext(SidebarContext);
-  if (!context) return null; // Guard
+  if (!context) return null;
   const { toggleSidebar } = context;
 
 
@@ -573,14 +567,13 @@ const SidebarMenuButton = React.forwardRef<
     if (!context) {
       // Fallback rendering or null if context is not available
       // This helps during specific build phases like _not-found prerender.
-      // You might render a simplified button or just its children if applicable.
       return (
         <Comp
           ref={ref}
           data-sidebar="menu-button-no-context"
           data-size={size}
           data-active={isActive}
-          className={cn(sidebarMenuButtonVariants({ variant, size }), className, "opacity-50 pointer-events-none")} // Example: disable/fade if no context
+          className={cn(sidebarMenuButtonVariants({ variant, size }), className, "opacity-50 pointer-events-none")}
           {...props}
         />
       );
@@ -766,7 +759,7 @@ const SidebarMenuSubButton = React.forwardRef<
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
 
 export {
-  // SidebarContext was already exported
+  SidebarContext,
   Sidebar,
   SidebarContent,
   SidebarFooter,

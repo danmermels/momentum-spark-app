@@ -3,16 +3,19 @@
 "use client";
 
 import Link from 'next/link';
-import { SidebarTrigger, useSidebar } from './ui/sidebar'; // Relative path
-// Button import is not directly used by SiteHeader itself, but SidebarTrigger might. Let's keep it for now if SidebarTrigger needs it as a peer.
-// import { Button } from './ui/button'; 
+import { SidebarTrigger, SidebarContext } from '@/components/ui/sidebar';
 import { Sparkles } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 
 // This sub-component will only be rendered on the client side after mount,
-// and it's the one that will safely call useSidebar.
+// and it's the one that will safely call useSidebar (indirectly via SidebarTrigger's context check).
 const SiteHeaderClientActions = () => {
-  const { isMobile } = useSidebar(); // Safe to call here as this component is client-only mounted
+  const sidebarContext = useContext(SidebarContext); // Directly use SidebarContext
+  if (!sidebarContext) {
+    // console.warn("SiteHeaderClientActions: SidebarContext not available during this render pass.");
+    return null; // If context isn't there (e.g. very early SSR pass), render nothing
+  }
+  const { isMobile } = sidebarContext;
 
   // Only render the trigger if it's mobile view
   if (!isMobile) {
