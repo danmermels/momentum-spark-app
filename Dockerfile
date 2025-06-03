@@ -2,7 +2,11 @@
 # Stage 1: Install dependencies
 FROM node:20-alpine AS deps
 WORKDIR /app
+
+# Copy package.json and lock file
 COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
+
+# Install dependencies based on the lock file present
 RUN \
   if [ -f package-lock.json ]; then npm ci; \
   elif [ -f pnpm-lock.yaml ]; then corepack enable && pnpm i --frozen-lockfile; \
@@ -14,14 +18,14 @@ RUN \
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy dependencies from the 'deps' stage
+# Copy installed dependencies and package.json
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
 
 # Copy the rest of the application code
 COPY . .
 
-# Debug: List contents of directories to verify structure
+# DEBUG: Verify directory structure and file presence
 RUN echo "DEBUG BUILDER: Current directory:" && pwd && echo "---"
 RUN echo "DEBUG BUILDER: Contents of /app (root of WORKDIR):" && ls -A /app && echo "---"
 RUN echo "DEBUG BUILDER: Contents of /app/src:" && (ls -A /app/src || echo "Directory /app/src not found or empty") && echo "---"
@@ -36,14 +40,19 @@ RUN echo "DEBUG BUILDER: Contents of /app/src/types:" && (ls -A /app/src/types |
 RUN echo "DEBUG BUILDER: Contents of /app/src/ai:" && (ls -A /app/src/ai || echo "Directory /app/src/ai not found or empty") && echo "---"
 RUN echo "DEBUG BUILDER: Contents of /app/src/ai/flows:" && (ls -A /app/src/ai/flows || echo "Directory /app/src/ai/flows not found or empty") && echo "---"
 
-# Debug: Explicitly check for tsconfig.json and critical files BEFORE the build
-RUN echo "DEBUG BUILDER (Before Build - Checkpoint Charlie): Verifying critical file paths and tsconfig" && \
+# RIGOROUS FILE CHECK (NEW - Checkpoint Delta) - This will fail the build if files are not found
+RUN echo "DEBUG BUILDER (Before Build - Checkpoint Delta): Verifying critical file paths and tsconfig" && \
     echo "Listing /app (WORKDIR contents):" && ls -A /app && \
-    echo "Checking /app/tsconfig.json:" && (ls -l /app/tsconfig.json || echo "/app/tsconfig.json NOT FOUND") && \
-    echo "Contents of /app/tsconfig.json:" && (cat /app/tsconfig.json || echo "Could not cat /app/tsconfig.json") && \
-    echo "Checking /app/src/types/task.ts:" && (ls -l /app/src/types/task.ts || echo "/app/src/types/task.ts NOT FOUND") && \
-    echo "Checking /app/src/lib/db.ts:" && (ls -l /app/src/lib/db.ts || echo "/app/src/lib/db.ts NOT FOUND") && \
-    echo "---"
+    echo "Checking /app/tsconfig.json..." && \
+    [ -f /app/tsconfig.json ] || (echo "CRITICAL ERROR: /app/tsconfig.json NOT FOUND!" && exit 1) && \
+    echo "/app/tsconfig.json FOUND. Contents:" && cat /app/tsconfig.json && \
+    echo "Checking /app/src/types/task.ts..." && \
+    [ -f /app/src/types/task.ts ] || (echo "CRITICAL ERROR: /app/src/types/task.ts NOT FOUND!" && exit 1) && \
+    ls -l /app/src/types/task.ts && \
+    echo "Checking /app/src/lib/db.ts..." && \
+    [ -f /app/src/lib/db.ts ] || (echo "CRITICAL ERROR: /app/src/lib/db.ts NOT FOUND!" && exit 1) && \
+    ls -l /app/src/lib/db.ts && \
+    echo "--- All critical files verified by Checkpoint Delta ---"
 
 # Build the Next.js application
 RUN npm run build
@@ -52,38 +61,36 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Create a non-root user and group
+ENV NODE_ENV=production
+# Uncomment the following line in case you want to disable telemetry during runtime.
+# ENV NEXT_TELEMETRY_DISABLED 1
+
 RUN addgroup --system --gid 1001 nextjs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy built assets from the 'builder' stage
-# The standalone output already includes node_modules, so no need to copy from 'deps'
-COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
-
-# Create /app/data directory and set permissions for SQLite DB
+# Create the /app/data directory and set ownership
 RUN mkdir -p /app/data
 RUN chown nextjs:nextjs /app/data
+RUN echo "DEBUG RUNNER: Permissions of /app/data:" && ls -ld /app/data && echo "---"
 
-# Debug: List contents of the final /app directory and check server.js
+# Copy standalone output
+COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
+
+# Copy public assets
+COPY --from=builder /app/public ./public
+
+# Copy static assets
+COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
+
+USER nextjs
+
+# DEBUG commands for runner stage
 RUN echo "DEBUG RUNNER: Current directory:" && pwd && echo "---"
 RUN echo "DEBUG RUNNER: Contents of /app (WORKDIR):" && ls -la /app && echo "---"
 RUN echo "DEBUG RUNNER: Specifically checking for server.js in /app:" && (ls -la /app/server.js || echo "/app/server.js NOT FOUND") && echo "---"
-RUN echo "DEBUG RUNNER: Permissions of /app/data:" && ls -ld /app/data && echo "---"
 
-
-# Set the user to the non-root user
-USER nextjs
-
-# Expose the port the app runs on
 EXPOSE 3000
+ENV PORT 3000
 
-# Set environment variables
-ENV NODE_ENV=production
-# For Next.js 13.4+, PORT is automatically set to 3000, no need to set HOSTNAME
-# ENV PORT=3000
-
-# Start the Next.js application
-# The standalone output produces a server.js file
+# CMD ["node", "server.js"]
 CMD ["node", "/app/server.js"]
