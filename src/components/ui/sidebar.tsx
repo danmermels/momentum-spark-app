@@ -27,7 +27,7 @@ const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
-type SidebarContext = {
+type SidebarContextType = { // Renamed to avoid conflict
   state: "expanded" | "collapsed"
   open: boolean
   setOpen: (open: boolean) => void
@@ -37,7 +37,9 @@ type SidebarContext = {
   toggleSidebar: () => void
 }
 
-const SidebarContext = React.createContext<SidebarContext | null>(null)
+// Exporting SidebarContext to be used in SiteHeader for a direct check
+export const SidebarContext = React.createContext<SidebarContextType | null>(null)
+
 
 function useSidebar() {
   const context = React.useContext(SidebarContext)
@@ -68,7 +70,7 @@ const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobile = useIsMobile()
+    const isMobile = useIsMobile() // Defaults to false on SSR
     const [openMobile, setOpenMobile] = React.useState(false)
 
     const [_open, _setOpen] = React.useState(defaultOpen)
@@ -89,7 +91,7 @@ const SidebarProvider = React.forwardRef<
     )
 
     const toggleSidebar = React.useCallback(() => {
-      if (isMobile) { // isMobile should now be a boolean from useIsMobile
+      if (isMobile) { 
         setOpenMobile((currentOpenMobile) => !currentOpenMobile);
       } else {
         setOpen((currentOpen) => !currentOpen);
@@ -97,7 +99,7 @@ const SidebarProvider = React.forwardRef<
     }, [isMobile, setOpen, setOpenMobile]);
 
     React.useEffect(() => {
-      if (typeof window === 'undefined') return; // Guard against SSR
+      if (typeof window === 'undefined') return; 
 
       const handleKeyDown = (event: KeyboardEvent) => {
         if (
@@ -110,11 +112,11 @@ const SidebarProvider = React.forwardRef<
       }
       window.addEventListener("keydown", handleKeyDown)
       return () => window.removeEventListener("keydown", handleKeyDown)
-    }, [toggleSidebar])
+    }, [toggleSidebar]) 
 
     const state = open ? "expanded" : "collapsed"
 
-    const contextValue = React.useMemo<SidebarContext>(
+    const contextValue = React.useMemo<SidebarContextType>(
       () => ({
         state,
         open,
@@ -173,7 +175,16 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const context = React.useContext(SidebarContext) // Check context first
+    if (!context) {
+      // This should ideally not happen if Sidebar is always within SidebarProvider.
+      // If it does, render nothing or a minimal version to avoid crashing.
+      // For _not-found prerender, this might be a fallback.
+      console.warn("Sidebar rendered outside of SidebarProvider during build for _not-found?");
+      return null; // Or a minimal fallback
+    }
+    const { isMobile, state, openMobile, setOpenMobile } = context;
+
 
     if (collapsible === "none") {
       return (
@@ -259,7 +270,12 @@ const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  const context = React.useContext(SidebarContext); // Get context directly
+  if (!context) {
+    // If no context (e.g., _not-found prerender without AppLayout fully wrapping), render nothing.
+    return null;
+  }
+  const { toggleSidebar } = context; // Destructure safely
 
   return (
     <Button
@@ -285,7 +301,10 @@ const SidebarRail = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  const context = React.useContext(SidebarContext);
+  if (!context) return null; // Guard
+  const { toggleSidebar } = context;
+
 
   return (
     <button
@@ -549,7 +568,25 @@ const SidebarMenuButton = React.forwardRef<
     ref
   ) => {
     const Comp = asChild ? Slot : "button"
-    const { isMobile, state } = useSidebar()
+    const context = React.useContext(SidebarContext);
+
+    if (!context) {
+      // Fallback rendering or null if context is not available
+      // This helps during specific build phases like _not-found prerender.
+      // You might render a simplified button or just its children if applicable.
+      return (
+        <Comp
+          ref={ref}
+          data-sidebar="menu-button-no-context"
+          data-size={size}
+          data-active={isActive}
+          className={cn(sidebarMenuButtonVariants({ variant, size }), className, "opacity-50 pointer-events-none")} // Example: disable/fade if no context
+          {...props}
+        />
+      );
+    }
+    const { isMobile, state } = context;
+
 
     const button = (
       <Comp
@@ -578,7 +615,7 @@ const SidebarMenuButton = React.forwardRef<
         <TooltipContent
           side="right"
           align="center"
-          hidden={!isMobile && state !== "collapsed"} // Corrected logic: show if mobile OR if desktop and collapsed
+          hidden={!(state === "collapsed" && !isMobile)}
           {...tooltip}
         />
       </Tooltip>
@@ -729,6 +766,7 @@ const SidebarMenuSubButton = React.forwardRef<
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
 
 export {
+  // SidebarContext was already exported
   Sidebar,
   SidebarContent,
   SidebarFooter,
