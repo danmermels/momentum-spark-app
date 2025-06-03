@@ -1,34 +1,42 @@
-
 # Dockerfile
 
 # Stage 1: Install dependencies
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Copy package.json and package-lock.json (or yarn.lock)
-COPY package.json package-lock.json* ./
-# If you use pnpm, you would copy pnpm-lock.yaml and use pnpm install
-# COPY package.json pnpm-lock.yaml ./
-# RUN corepack enable && pnpm install --frozen-lockfile --prod=false
+# Copy package.json and lock file
+# Prefer package-lock.json if it exists, otherwise yarn.lock or pnpm-lock.yaml
+COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies based on the lock file found
+# This order handles most common cases. If multiple lock files exist, adjust as needed.
+RUN if [ -f package-lock.json ]; then npm ci; \
+    elif [ -f pnpm-lock.yaml ]; then corepack enable && pnpm i --frozen-lockfile; \
+    elif [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
+    else echo "Warning: No lock file found. Installing from package.json." && npm install; \
+    fi
 
-# Stage 2: Build the application
+# Stage 2: Builder stage
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy dependencies from the 'deps' stage
+# Copy necessary files from 'deps' stage
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package.json ./package.json
+# Ensure the specific lock file used in 'deps' is copied
+# Adjust if you use a different package manager or lock file name
+COPY --from=deps /app/package-lock.json ./package-lock.json
 
-# Copy the rest of the application code
+# Copy the rest of the application code from the build context
 COPY . .
 
-# Add a debug command to list src contents
-RUN echo "Listing contents of /app/src:" && ls -R /app/src
-
-# Set environment variables for build if necessary
-# Example: ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+# Debug: Verify file structure before build
+RUN echo "DEBUG: Current directory:" && pwd && echo "---"
+RUN echo "DEBUG: Contents of /app (root of WORKDIR):" && ls -A /app && echo "---"
+RUN echo "DEBUG: Contents of /app/src:" && ls -A /app/src && echo "---"
+RUN echo "DEBUG: Contents of /app/src/app:" && ls -A /app/src/app && echo "---"
+RUN echo "DEBUG: Contents of /app/src/components:" && ls -A /app/src/components && echo "---"
+RUN echo "DEBUG: Contents of /app/src/components/ui:" && ls -A /app/src/components/ui && echo "---"
 
 # Build the Next.js application
 RUN npm run build
@@ -38,8 +46,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-# Uncomment the following line in case you want to disable telemetry.
-# ENV NEXT_TELEMETRY_DISABLED=1
+# ENV NEXT_TELEMETRY_DISABLED=1 # Uncomment to disable telemetry
 
 RUN addgroup --system --gid 1001 nextjs
 RUN adduser --system --uid 1001 nextjs
@@ -57,6 +64,5 @@ EXPOSE 3000
 
 ENV PORT=3000
 
-# Set an explicit entrypoint and command
 ENTRYPOINT ["node"]
 CMD ["server.js"]
