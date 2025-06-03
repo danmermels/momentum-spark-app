@@ -1,94 +1,94 @@
 
-# Stage 1: Install dependencies
-FROM node:20-alpine AS deps
+# Dockerfile
+
+# -------- Base Stage --------
+# Use Node.js 20 Alpine as the base image for a smaller footprint
+FROM node:20-alpine AS base
 WORKDIR /app
-COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
-RUN \
-  if [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable && pnpm i --frozen-lockfile; \
-  elif [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
-
-# Stage 2: Build the Next.js application
-FROM node:20-alpine AS builder
-WORKDIR /app
-
-# Set environment variables for the build
-ENV NODE_ENV=production
-
-# Copy dependency artifacts and source code
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/package.json ./package.json
-COPY . .
-
-# Debug: List contents of directories after COPY to verify
-RUN echo "DEBUG BUILDER: Current directory:" && pwd && echo "---"
-RUN echo "DEBUG BUILDER: Contents of /app (root of WORKDIR):" && ls -A /app && echo "---"
-RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src (CacheBuster-SRC-OMEGA):" && (ls -Al /app/src || echo "Directory /app/src not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/app (CacheBuster-APP-OMEGA):" && (ls -Al /app/src/app || echo "Directory /app/src/app not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/app/api (CacheBuster-API-OMEGA):" && (ls -Al /app/src/app/api || echo "Directory /app/src/app/api not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/app/api/tasks (CacheBuster-APITASKS-OMEGA):" && (ls -Al /app/src/app/api/tasks || echo "Directory /app/src/app/api/tasks not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/components (CacheBuster-COMPONENTS-OMEGA):" && (ls -Al /app/src/components || echo "Directory /app/src/components not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/components/ui (CacheBuster-UI-OMEGA):" && (ls -Al /app/src/components/ui || echo "Directory /app/src/components/ui not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/hooks (CacheBuster-HOOKS-OMEGA):" && (ls -Al /app/src/hooks || echo "Directory /app/src/hooks not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/lib (CacheBuster-LIB-OMEGA):" && (ls -Al /app/src/lib || echo "Directory /app/src/lib not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/types (CacheBuster-TYPES-OMEGA):" && (ls -Al /app/src/types || echo "Directory /app/src/types not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/ai (CacheBuster-AI-OMEGA):" && (ls -Al /app/src/ai || echo "Directory /app/src/ai not found or empty") && echo "---"
-RUN echo "DEBUG BUILDER (Post-Copy): Contents of /app/src/ai/flows (CacheBuster-AIFLOWS-OMEGA):" && (ls -Al /app/src/ai/flows || echo "Directory /app/src/ai/flows not found or empty") && echo "---"
-
-# RIGOROUS FILE CHECK (Checkpoint Delta) - This will fail the build if files are not found
-RUN echo "DEBUG BUILDER (Before Build - Checkpoint Delta): Verifying critical file paths and tsconfig" && \
-    echo "Listing /app (WORKDIR contents):" && ls -A /app && \
-    echo "Checking /app/tsconfig.json..." && \
-    [ -f /app/tsconfig.json ] || (echo "CRITICAL ERROR: /app/tsconfig.json NOT FOUND!" && exit 1) && \
-    echo "/app/tsconfig.json FOUND. Contents:" && cat /app/tsconfig.json && \
-    echo "Checking /app/src/types/task.ts..." && \
-    [ -f /app/src/types/task.ts ] || (echo "CRITICAL ERROR: /app/src/types/task.ts NOT FOUND!" && exit 1) && \
-    ls -l /app/src/types/task.ts && \
-    echo "Checking /app/src/lib/db.ts..." && \
-    [ -f /app/src/lib/db.ts ] || (echo "CRITICAL ERROR: /app/src/lib/db.ts NOT FOUND!" && exit 1) && \
-    ls -l /app/src/lib/db.ts && \
-    echo "--- All critical files verified by Checkpoint Delta ---"
-
-# Build the Next.js application
-RUN npm run build
-
-# Stage 3: Production image, copy all the files and run next
-FROM node:20-alpine AS runner
-WORKDIR /app
-
-ENV NODE_ENV=production
-# PORT will be set by the `docker run -p` mapping, but Next.js standalone defaults to 3000 if PORT env is not set.
-# We set it to 8080 here to be explicit, matching the EXPOSE and typical -p mapping.
-ENV PORT=8080
-
-# Create a non-root user and group
+# Create a non-root user and group for security best practices
+# Using fixed GID/UID can help with managing permissions if mounting volumes
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy the standalone server, static assets, and public files
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+# -------- Dependencies Stage --------
+# This stage is dedicated to installing dependencies.
+# It leverages Docker's layer caching: if package.json/lockfiles haven't changed,
+# this layer can be reused, speeding up subsequent builds.
+FROM base AS deps
+WORKDIR /app
+# Copy only package files to leverage Docker cache
+COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
+# Install dependencies based on the lock file present
+# corepack enable is needed for pnpm if not globally enabled in the base image
+RUN \
+  if [ -f package-lock.json ]; then echo "Found package-lock.json, running npm ci" && npm ci; \
+  elif [ -f pnpm-lock.yaml ]; then echo "Found pnpm-lock.yaml, running pnpm i" && corepack enable && pnpm i --frozen-lockfile; \
+  elif [ -f yarn.lock ]; then echo "Found yarn.lock, running yarn install" && yarn install --frozen-lockfile; \
+  else echo "No lockfile found. Please commit a lockfile." && exit 1; \
+  fi
 
-# Create and set permissions for the data directory for SQLite
-# This directory will be /app/data inside the container
-RUN mkdir -p /app/data
-# Note: chown will be done *after* all files are in place and *before* USER nextjs
+# -------- Builder Stage --------
+# This stage builds the Next.js application.
+FROM base AS builder
+WORKDIR /app
+# Copy dependencies from 'deps' stage
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=deps --chown=nextjs:nodejs /app/package.json ./package.json
+# Copy the rest of the application source code
+# Using .dockerignore to exclude unnecessary files
+COPY . .
 
-# Debug: List all files in /app recursively to see structure and permissions before chown
-RUN echo "DEBUG RUNNER: Recursive listing of /app before USER change and chown" && ls -AlR /app && echo "---"
+# Build the Next.js application
+# The build process will generate the .next directory with build artifacts,
+# including the standalone server if output: 'standalone' is set in next.config.js
+RUN npm run build
 
-# Ensure the nextjs user owns all application files and the data directory
+# -------- Runner Stage --------
+# This is the final stage that will run the application.
+# It starts from the clean 'base' image to keep it small.
+FROM base AS runner
+WORKDIR /app
+
+# Set production environment
+ENV NODE_ENV=production
+# Set the Gemini API Key as an environment variable from a build argument
+# The build argument (GEMINI_API_KEY_ARG) must be passed during the 'docker build' command
+ARG GEMINI_API_KEY_ARG
+ENV GEMINI_API_KEY=$GEMINI_API_KEY_ARG
+# Explicitly set NEXT_DIST_DIR, though standalone server.js usually figures this out.
+# This tells Next.js where the .next build output directory is relative to server.js.
+ENV NEXT_DIST_DIR=.next
+
+# Create and set permissions for the /app/data directory for SQLite database
+# This ensures the 'nextjs' user can write to this directory.
+RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
+# Some hosting platforms (like Vercel) might use /data, this is for broader compatibility
+RUN mkdir -p /data && chown nextjs:nodejs /data
+
+# Copy necessary files from the builder stage for the standalone output:
+# 1. The standalone server and its dependencies
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+# 2. The static assets (CSS, JS chunks, images) that server.js needs to serve
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# 3. The public directory contents
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Diagnostic step: List the contents of /app to verify file structure
+RUN echo "DEBUG RUNNER: Recursive listing of /app (CacheBuster-Structure-MU)" && ls -AlR /app
+
+# Ensure all files within /app are owned by the 'nextjs' user.
+# This is a good practice, especially after multiple COPY operations.
 RUN chown -R nextjs:nodejs /app
-RUN chown -R nextjs:nodejs /app/data # Explicitly ensure data dir ownership
 
-# Switch to the non-root user
+# Switch to the non-root user 'nextjs' for running the application
 USER nextjs
 
-# Expose the port the app runs on
+# Expose port 8080 (Next.js will listen on this port due to PORT env var below)
+# This informs Docker that the container listens on port 8080 at runtime.
+ENV PORT=8080
 EXPOSE 8080
 
-# Correct command to run the Next.js standalone server, with trace warnings
+# Correct command to run the Next.js standalone server.
+# 'server.js' is the entry point for the standalone output.
+# Adding --trace-warnings for more detailed Node.js startup/runtime feedback.
 CMD ["node", "--trace-warnings", "server.js"]
