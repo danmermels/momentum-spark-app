@@ -1,8 +1,8 @@
 
 // src/app/api/tasks/route.ts
 import { NextResponse } from 'next/server';
-import { getDB } from 'lib/db'; // Changed to src-relative
-import { TaskSchema, type TaskFormData, type TaskWithId } from 'types/task'; // Changed to src-relative
+import { getDB } from '@/lib/db'; // Reverted to alias
+import { TaskSchema, type TaskFormData, type TaskWithId } from '@/types/task'; // Reverted to alias
 import type { Database } from 'sqlite';
 
 const defaultTasksSeedData: Omit<TaskFormData, 'id' | 'createdAt' | 'updatedAt'>[] = [

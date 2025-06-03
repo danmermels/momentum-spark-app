@@ -1,8 +1,8 @@
 
 // src/app/api/tasks/[id]/route.ts
 import { NextResponse } from 'next/server';
-import { getDB } from 'lib/db'; // Changed to src-relative
-import { TaskSchema, type TaskWithId } from 'types/task'; // Changed to src-relative
+import { getDB } from '@/lib/db'; // Reverted to alias
+import { TaskSchema, type TaskWithId } from '@/types/task'; // Reverted to alias
 import type { Database } from 'sqlite';
 
 // Helper to map DB row to TaskWithId, converting 0/1 to boolean
