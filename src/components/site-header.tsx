@@ -2,8 +2,8 @@
 "use client";
 
 import Link from 'next/link';
-import { SidebarTrigger, useSidebar } from './ui/sidebar'; // Adjusted to relative path
-import { Button } from './ui/button'; // Adjusted to relative path
+import { SidebarTrigger, useSidebar } from './ui/sidebar'; // Adjusted path
+import { Button } from './ui/button'; // Adjusted path
 import { Sparkles } from 'lucide-react';
 
 export default function SiteHeader() {
@@ -26,3 +26,4 @@ export default function SiteHeader() {
   );
 }
 
+    

@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils" // Assuming lib/utils.ts is present
+import { cn } from "../../lib/utils" // Adjusted path
 
 function Skeleton({
   className,
@@ -13,3 +13,5 @@ function Skeleton({
 }
 
 export { Skeleton }
+
+    

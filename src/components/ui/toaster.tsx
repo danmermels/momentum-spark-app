@@ -1,6 +1,7 @@
 "use client"
+"use client"
 
-import { useToast } from "@/hooks/use-toast" // Assuming hooks/use-toast.ts will be created
+import { useToast } from "../../hooks/use-toast" // Adjusted path
 import {
   Toast,
   ToastClose,
@@ -8,7 +9,7 @@ import {
   ToastProvider,
   ToastTitle,
   ToastViewport,
-} from "@/components/ui/toast" // Assuming components/ui/toast.tsx will be created
+} from "./toast" // Adjusted path
 
 export function Toaster() {
   const { toasts } = useToast()
@@ -33,3 +34,5 @@ export function Toaster() {
     </ToastProvider>
   )
 }
+
+    

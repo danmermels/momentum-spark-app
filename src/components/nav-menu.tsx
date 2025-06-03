@@ -11,7 +11,7 @@ import {
   SidebarGroupLabel,
   SidebarGroup,
 } from './ui/sidebar'; // Adjusted to relative path
-import { cn } from '@/lib/utils'; // Assuming lib/utils is present
+import { cn } from '../lib/utils'; // Adjusted path
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: Home },
@@ -75,3 +75,5 @@ export function NavMenu() {
     </SidebarMenu>
   );
 }
+
+    
