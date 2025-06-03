@@ -1,8 +1,8 @@
 
 // src/app/api/tasks/route.ts
 import { NextResponse } from 'next/server';
-import { getDB } from '@/lib/db';
-import { TaskSchema, type TaskFormData, type TaskWithId } from '@/types/task'; // Ensure TaskWithId aligns with number ID
+import { getDB } from '../../../lib/db';
+import { TaskSchema, type TaskFormData, type TaskWithId } from '../../../types/task';
 import type { Database } from 'sqlite';
 
 const defaultTasksSeedData: Omit<TaskFormData, 'id' | 'createdAt' | 'updatedAt'>[] = [
