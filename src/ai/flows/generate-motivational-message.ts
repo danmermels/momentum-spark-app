@@ -8,7 +8,7 @@
  * - MotivationalMessageOutput - The return type for the generateMotivationalMessage function.
  */
 
-import {ai} from '../genkit'; // Relative path
+import {ai} from '../genkit'; // Ensuring this relative path is used
 import {z} from 'genkit';
 
 const MotivationalMessageInputSchema = z.object({
@@ -66,5 +66,3 @@ const generateMotivationalMessageFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    
