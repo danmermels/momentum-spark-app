@@ -3,10 +3,10 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   typescript: {
-    ignoreBuildErrors: true,
+    // ignoreBuildErrors: true, // Removed
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    // ignoreDuringBuilds: true, // Removed
   },
   images: {
     remotePatterns: [
@@ -18,9 +18,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  output: 'standalone', // Required for optimal Docker image size
-  // outputFileTracingRoot: __dirname, // Kept commented out as it didn't solve the issue
-  // distDir: '.next', // Removing this to rely on default resolution
+  output: 'standalone',
 };
 
 export default nextConfig;
