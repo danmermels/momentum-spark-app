@@ -2,7 +2,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  distDir: '.next', // Explicitly set distDir
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -19,8 +19,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  output: 'standalone', // Required for optimal Docker image size with output file tracing
-  outputFileTracingRoot: __dirname, // Explicitly set the project root for output file tracing
+  output: 'standalone', // Required for optimal Docker image size
 };
 
 export default nextConfig;
