@@ -5,13 +5,6 @@ import { getDB } from '@/lib/db';
 import { TaskSchema, type TaskWithId } from '@/types/task';
 import type { Database } from 'sqlite';
 
-// Define an interface for the route context
-interface RouteContext {
-  params: {
-    id: string;
-  };
-}
-
 // Helper to map DB row to TaskWithId, converting 0/1 to boolean
 const mapRowToTaskWithId = (row: any): TaskWithId => ({
   ...row,
@@ -21,8 +14,8 @@ const mapRowToTaskWithId = (row: any): TaskWithId => ({
   isRecurring: row.isRecurring === 1,
 });
 
-export async function GET(request: NextRequest, context: RouteContext) {
-  const id = Number(context.params.id);
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const id = Number(params.id);
   console.log(`[API /api/tasks/${id}] GET request received`);
   if (isNaN(id)) {
     console.log(`[API /api/tasks/${id}] Invalid ID provided.`);
@@ -47,8 +40,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 }
 
-export async function PUT(request: NextRequest, context: RouteContext) {
-  const id = Number(context.params.id);
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  const id = Number(params.id);
   console.log(`[API /api/tasks/${id}] PUT request received`);
    if (isNaN(id)) {
     console.log(`[API /api/tasks/${id}] Invalid ID provided for PUT.`);
@@ -113,8 +106,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   }
 }
 
-export async function DELETE(request: NextRequest, context: RouteContext) {
-  const id = Number(context.params.id);
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const id = Number(params.id);
   console.log(`[API /api/tasks/${id}] DELETE request received`);
   if (isNaN(id)) {
     console.log(`[API /api/tasks/${id}] Invalid ID provided for DELETE.`);
