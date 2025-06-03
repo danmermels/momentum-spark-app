@@ -1,0 +1,90 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 95%; /* #F1F1F1 */
+    --foreground: 0 0% 13%; /* #202020 */
+    --card: 0 0% 97%; /* #F7F7F7 - slightly off-white for cards */
+    --card-foreground: 0 0% 13%; /* #202020 */
+    --popover: 0 0% 97%; /* #F7F7F7 */
+    --popover-foreground: 0 0% 13%; /* #202020 */
+    --primary: 213 62% 30%; /* #1C4E80 */
+    --primary-foreground: 0 0% 98%; /* Almost white for contrast on dark blue */
+    --secondary: 200 10% 55%; /* #7E909A */
+    --secondary-foreground: 0 0% 13%; /* Dark text on mid-toned secondary */
+    --muted: 200 10% 88%; /* Lighter version of secondary for muted backgrounds */
+    --muted-foreground: 200 10% 40%; /* Darker text for muted */
+    --accent: 14 81% 60%; /* #EA6A47 */
+    --accent-foreground: 0 0% 98%; /* Almost white for contrast on orange-red */
+    --destructive: 14 81% 60%; /* #EA6A47 */
+    --destructive-foreground: 0 0% 98%;
+    --border: 200 10% 80%; /* Lighter shade of secondary for borders */
+    --input: 200 10% 90%; /* Lighter shade for input backgrounds */
+    --ring: 213 62% 30%; /* Primary color for rings */
+    
+    --chart-1: 199 100% 42%; /* #0091D5 */
+    --chart-2: 187 46% 76%; /* #A5D8DD */
+    --chart-3: 14 81% 70%; /* Lighter #EA6A47 */
+    --chart-4: 213 62% 50%; /* Lighter #1C4E80 */
+    --chart-5: 200 10% 40%; /* Darker #7E909A */
+    --radius: 0.5rem;
+
+    /* Sidebar specific colors */
+    --sidebar-background: 0 0% 92%; /* Slightly darker than main background #EBEBEB */
+    --sidebar-foreground: 0 0% 13%;
+    --sidebar-primary: 213 62% 30%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 14 81% 60%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 200 10% 75%; /* Slightly darker border for sidebar */
+    --sidebar-ring: 213 62% 30%;
+  }
+
+  .dark {
+    --background: 0 0% 13%; /* #202020 */
+    --foreground: 0 0% 95%; /* #F1F1F1 */
+    --card: 0 0% 10%; /* #1A1A1A - darker than background */
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 213 62% 55%; /* Lighter #1C4E80 */
+    --primary-foreground: 0 0% 98%; 
+    --secondary: 200 10% 35%; /* Darker #7E909A for dark mode */
+    --secondary-foreground: 0 0% 95%;
+    --muted: 200 10% 20%; /* Darker muted */
+    --muted-foreground: 200 10% 70%; /* Lighter text for muted */
+    --accent: 14 81% 65%; /* Lighter #EA6A47 */
+    --accent-foreground: 0 0% 13%; 
+    --destructive: 14 81% 50%; /* Slightly darker/more saturated red for dark destructive */
+    --destructive-foreground: 0 0% 98%;
+    --border: 200 10% 25%;
+    --input: 200 10% 22%;
+    --ring: 213 62% 55%;
+
+    /* Sidebar specific colors for dark mode */
+    --sidebar-background: 0 0% 8%; /* Even darker for sidebar */
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 213 62% 55%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 14 81% 65%;
+    --sidebar-accent-foreground: 0 0% 13%;
+    --sidebar-border: 200 10% 18%;
+    --sidebar-ring: 213 62% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
