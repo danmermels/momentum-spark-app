@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
     ],
   },
   output: 'standalone', // Required for optimal Docker image size with output file tracing
+  outputFileTracingRoot: __dirname, // Explicitly set the project root for output file tracing
 };
 
 export default nextConfig;
