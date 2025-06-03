@@ -23,7 +23,7 @@ USER nextjs
 
 EXPOSE 3000
 
-ENV PORT=3000 # Fixed ENV syntax
+ENV PORT=3000 
 
 # CMD ["node", "server.js"] # This is the original
 CMD ["node", "/app/server.js"] # Let's try being super explicit with the path
