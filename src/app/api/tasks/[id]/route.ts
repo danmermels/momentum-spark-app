@@ -14,8 +14,8 @@ const mapRowToTaskWithId = (row: any): TaskWithId => ({
   isRecurring: row.isRecurring === 1,
 });
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
+export async function GET(request: NextRequest, context: { params: { id: string } }) {
+  const id = Number(context.params.id);
   console.log(`[API /api/tasks/${id}] GET request received`);
   if (isNaN(id)) {
     console.log(`[API /api/tasks/${id}] Invalid ID provided.`);
@@ -40,8 +40,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
+export async function PUT(request: NextRequest, context: { params: { id: string } }) {
+  const id = Number(context.params.id);
   console.log(`[API /api/tasks/${id}] PUT request received`);
    if (isNaN(id)) {
     console.log(`[API /api/tasks/${id}] Invalid ID provided for PUT.`);
@@ -106,8 +106,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
+export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
+  const id = Number(context.params.id);
   console.log(`[API /api/tasks/${id}] DELETE request received`);
   if (isNaN(id)) {
     console.log(`[API /api/tasks/${id}] Invalid ID provided for DELETE.`);
