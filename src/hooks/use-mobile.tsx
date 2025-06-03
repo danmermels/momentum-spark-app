@@ -1,22 +1,31 @@
+
 import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const [isMobile, setIsMobile] = React.useState<boolean>(() => {
+    // Initialize with a sensible default for SSR
+    // This will be updated on the client after mount
+    if (typeof window === 'undefined') {
+      return false; 
+    }
+    return window.innerWidth < MOBILE_BREAKPOINT;
+  });
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+    // This effect only runs on the client
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
     const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    if (typeof window !== 'undefined') {
-        mql.addEventListener("change", onChange)
-        // Set initial state
-        setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-        return () => mql.removeEventListener("change", onChange)
-    }
-  }, [])
+      setIsMobile(mql.matches); // Use mql.matches for direct boolean value
+    };
 
-  return !!isMobile
+    // Set initial state based on current window size on client
+    setIsMobile(mql.matches); 
+    
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  return isMobile;
 }
