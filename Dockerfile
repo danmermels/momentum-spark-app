@@ -57,7 +57,7 @@ ARG GEMINI_API_KEY_ARG
 ENV GEMINI_API_KEY=$GEMINI_API_KEY_ARG
 # Explicitly set NEXT_DIST_DIR, though standalone server.js usually figures this out.
 # This tells Next.js where the .next build output directory is relative to server.js.
-ENV NEXT_DIST_DIR=.next
+ENV NEXT_DIST_DIR=/app/.next
 
 # Create and set permissions for the /app/data directory for SQLite database
 # This ensures the 'nextjs' user can write to this directory.
