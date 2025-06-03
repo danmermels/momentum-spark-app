@@ -2,7 +2,6 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  distDir: '.next', // Explicitly set distDir
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -20,6 +19,8 @@ const nextConfig: NextConfig = {
     ],
   },
   output: 'standalone', // Required for optimal Docker image size
+  // outputFileTracingRoot: __dirname, // Kept commented out as it didn't solve the issue
+  // distDir: '.next', // Removing this to rely on default resolution
 };
 
 export default nextConfig;
