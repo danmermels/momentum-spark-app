@@ -1,29 +1,36 @@
+
 # Dockerfile
 
 # Stage 1: Install dependencies
 FROM node:20-alpine AS deps
 WORKDIR /app
+
+# Copy package.json and package-lock.json (or yarn.lock)
 COPY package.json package-lock.json* ./
+# If you use pnpm, you would copy pnpm-lock.yaml and use pnpm install
+# COPY package.json pnpm-lock.yaml ./
+# RUN corepack enable && pnpm install --frozen-lockfile --prod=false
+
+# Install dependencies
 RUN npm ci
 
-# Stage 2: Build the Next.js application
+# Stage 2: Build the application
 FROM node:20-alpine AS builder
 WORKDIR /app
+
+# Copy dependencies from the 'deps' stage
 COPY --from=deps /app/node_modules ./node_modules
-# Copy necessary source files and configuration
-COPY package.json .
-COPY next.config.ts .
-COPY tsconfig.json .
-COPY public ./public
-COPY src ./src
-# If you have other root-level config files needed for build (e.g., postcss.config.js, tailwind.config.ts), copy them too.
-# COPY tailwind.config.ts .
-# COPY components.json .
 
-# Set ARGS for build if needed, e.g., NEXT_PUBLIC_API_URL
-# ARG NEXT_PUBLIC_API_URL
-# ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+# Copy the rest of the application code
+COPY . .
 
+# Add a debug command to list src contents
+RUN echo "Listing contents of /app/src:" && ls -R /app/src
+
+# Set environment variables for build if necessary
+# Example: ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+# Build the Next.js application
 RUN npm run build
 
 # Stage 3: Production image, copy all the files and run next
@@ -50,6 +57,6 @@ EXPOSE 3000
 
 ENV PORT=3000
 
-# Explicitly set ENTRYPOINT to node and CMD to the server script
+# Set an explicit entrypoint and command
 ENTRYPOINT ["node"]
 CMD ["server.js"]

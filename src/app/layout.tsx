@@ -1,8 +1,8 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
-import { Toaster } from '@/components/ui/toaster';
-import AppLayout from '@/components/app-layout'; // New AppLayout component
+import { Toaster } from '../components/ui/toaster'; // Changed to relative path
+import AppLayout from '../components/app-layout'; // Changed to relative path
 
 export const metadata: Metadata = {
   title: 'Momentum Spark',
