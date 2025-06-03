@@ -98,7 +98,9 @@ RUN chown -R nextjs:nodejs /app
 USER nextjs
 
 # Expose the port the app runs on
-EXPOSE 8080 # Informs Docker that the container listens on port 8080
+
+# Informs Docker that the container listens on port 8080
+EXPOSE 8080 
 
 # Correct command to run the Next.js standalone server via npm start
 # This relies on the package.json in the standalone output having a "start": "node server.js" script.
